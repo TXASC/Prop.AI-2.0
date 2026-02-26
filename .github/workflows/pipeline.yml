@@ -32,7 +32,7 @@ jobs:
         run: |
           python tuning_guardrails.py
       - name: Archive outputs
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: daily_outputs
           path: output/

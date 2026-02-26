@@ -81,5 +81,13 @@ def run_tuning(new_version, new_accuracy):
 # run_tuning('v1.2.3', 0.57)
 
 if __name__ == '__main__':
-    # Example: run_tuning('v1.2.3', 0.57)
-    pass
+    import sys
+    try:
+        if len(sys.argv) == 3:
+            version = sys.argv[1]
+            accuracy = float(sys.argv[2])
+            run_tuning(version, accuracy)
+        else:
+            print("Usage: python tuning_guardrails.py <version> <accuracy>")
+    except Exception as e:
+        print(f"Error running guardrails: {e}")

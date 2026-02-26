@@ -1,0 +1,15 @@
+{
+  "run_id": "run_2026-02-25",
+  "model_version": "nba_v0_market_normal_001",
+  "date": "2026-02-25",
+  "metrics": {
+    "roi": 0.12,
+    "total_stake": 30.0,
+    "total_profit": 3.6,
+    "clv_mean": 0.8,
+    "clv_pct_positive": 0.67,
+    "mae": 1.2,
+    "rmse": 1.5,
+    "counts": 3
+  }
+}

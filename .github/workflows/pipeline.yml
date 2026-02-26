@@ -1,0 +1,41 @@
+# .github/workflows/pipeline.yml
+name: NBA Prop Analytics Pipeline
+
+on:
+  schedule:
+    - cron: '0 6 * * *'   # 6am UTC
+    - cron: '0 13 * * *'  # 1pm UTC
+    - cron: '0 18 * * *'  # 6pm UTC
+  workflow_dispatch:
+
+jobs:
+  run-pipeline:
+    runs-on: ubuntu-latest
+    env:
+      THEODDS_API_KEY: ${{ secrets.THEODDS_API_KEY }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Run pipeline (CLI board)
+        run: |
+          python -m app.cli.main board
+      - name: Run guardrails (stop loss)
+        run: |
+          python tuning_guardrails.py
+      - name: Archive outputs
+        uses: actions/upload-artifact@v3
+        with:
+          name: daily_outputs
+          path: output/
+      - name: Notify (optional)
+        if: failure()
+        run: echo "Pipeline failed or reverted. Check logs."

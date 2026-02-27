@@ -3,6 +3,30 @@ from datetime import datetime, timedelta
 import os
 
 def compute_metrics(log_path="output/pick_log.csv", report_path="output/metrics_report.csv"):
+        # Daily top 50 accuracy report
+        today = datetime.now().date()
+        top50_report_path = "output/top50_accuracy_report.csv"
+        for report_date in sorted(df["date"].unique()):
+            day_df = df[df["date"] == report_date].head(50)
+            for stat in ["PTS", "REB", "AST", "PRA"]:
+                stat_df = day_df[day_df["stat_type"] == stat]
+                total = len(stat_df)
+                correct = (stat_df["final_result"] == "hit").sum() if "final_result" in stat_df else 0
+                acc = correct / total if total > 0 else 0
+                avg_edge = stat_df["edge_pct"].astype(float).mean() if total > 0 else 0
+                avg_clv = stat_df["clv"].astype(float).mean() if "clv" in stat_df and total > 0 else 0
+                row = {
+                    "date": report_date,
+                    "stat_type": stat,
+                    "top50_total": total,
+                    "top50_correct": correct,
+                    "top50_accuracy": round(acc, 3),
+                    "top50_avg_edge": round(avg_edge, 2),
+                    "top50_avg_clv": round(avg_clv, 2)
+                }
+                # Append to CSV
+                write_header = not os.path.exists(top50_report_path) or os.path.getsize(top50_report_path) == 0
+                pd.DataFrame([row]).to_csv(top50_report_path, mode="a", header=write_header, index=False)
     if not os.path.exists(log_path):
         print("No pick log found.")
         return

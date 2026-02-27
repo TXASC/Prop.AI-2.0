@@ -48,6 +48,22 @@ if board_data and "markets" in board_data:
     # Add recommended side column
     df["recommended_side"] = df.apply(lambda row: "Over" if row["projection"] > row["line"] else "Under", axis=1)
 
+    # --- LOG PICKS FOR TRACKING ---
+    import os
+    from datetime import datetime
+    log_cols = ["player_id", "stat_type", "line", "projection", "recommended_side", "over_odds", "under_odds", "edge_pct"]
+    log_df = df.copy()
+    log_df["date"] = datetime.now().strftime("%Y-%m-%d")
+    log_df = log_df[log_cols + ["date"]]
+    log_df = log_df.rename(columns={"line": "prop_line"})
+    log_df = log_df[["date", "player_id", "stat_type", "prop_line", "projection", "recommended_side", "over_odds", "under_odds", "edge_pct"]]
+    log_path = os.path.join("output", "pick_log.csv")
+    if not os.path.exists("output"):
+        os.makedirs("output")
+    # Append to CSV, add header if file is new
+    write_header = not os.path.exists(log_path) or os.path.getsize(log_path) == 0
+    log_df.to_csv(log_path, mode="a", header=write_header, index=False)
+
     # Relaxed odds filter: allow wider range and remove favorite side filter
     if "over_price" in df.columns and "under_price" in df.columns:
         df = df[(df["over_price"] >= -200) & (df["over_price"] <= 200) & (df["under_price"] >= -200) & (df["under_price"] <= 200)]

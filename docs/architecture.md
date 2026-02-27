@@ -20,3 +20,4 @@ graph TD
 - tests/: Unit tests
 - docs/: Documentation
 - output/: Daily artifacts
+- dashboard: Streamlit UI, now with auto-generated notes, key factors, and summary metrics for each pick.

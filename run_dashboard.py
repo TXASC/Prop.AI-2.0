@@ -1,7 +1,26 @@
 import subprocess
 import sys
+import os
 from datetime import date
 import requests
+def check_python_env():
+    # Check if running inside .venv
+    venv_path = os.environ.get('VIRTUAL_ENV')
+    if not venv_path:
+        venv_candidate = os.path.join(os.getcwd(), '.venv')
+        if os.path.exists(venv_candidate):
+            activate_script = os.path.join(venv_candidate, 'Scripts', 'activate_this.py')
+            if os.path.exists(activate_script):
+                print('Auto-activating .venv...')
+                exec(open(activate_script).read(), {'__file__': activate_script})
+            else:
+                print('Warning: .venv exists but activate_this.py not found. Please activate manually.')
+        else:
+            print('Warning: .venv not found. Please create and activate your virtual environment.')
+    # Check Python version
+    if sys.version_info < (3, 8):
+        print('Python 3.8+ is required. Please upgrade your Python environment.')
+        sys.exit(1)
 
 
 def run_pipeline():
@@ -31,6 +50,7 @@ def launch_dashboard():
 
 
 def main():
+    check_python_env()
     try:
         run_pipeline()
     except subprocess.CalledProcessError as e:

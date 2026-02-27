@@ -23,3 +23,13 @@ This will:
 
 ## Directory Structure
 - See `docs/architecture.md` for module breakdown.
+
+## Dashboard Explainability & Metrics
+- Each pick now includes auto-generated **Handicapper Notes** and a **Key Factors** table, highlighting the main drivers of the projection and edge.
+- A summary section at the bottom of the dashboard displays ROI, Net Profit, Closing Line Value (CLV), and Hit Rate for transparency and performance tracking.
+- See `nba_dashboard.py` for implementation details.
+
+## Methodology
+- Model outputs are explained using top contributing features (e.g., projection vs. line, edge %, etc.).
+- Notes and factors are generated automatically for each pick, improving user trust and system transparency.
+- For more, see `docs/modeling.md` and `docs/metrics.md`.

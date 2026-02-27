@@ -38,7 +38,7 @@ board_data = fetch_board(selected_date)
 if board_data and "markets" in board_data:
     # --- Manual Full Data Pull Button ---
     st.markdown("## Manual Full Data Pull")
-    full_run_triggered = st.button("Run Full Data Pull (OpenAI Full Mode)")
+    full_run_triggered = st.button("Run Full Data Pull (OpenAI Full Mode)", key="full_data_pull")
     if full_run_triggered:
         try:
             resp = requests.post("http://localhost:8000/run_full")
@@ -132,10 +132,10 @@ if board_data and "markets" in board_data:
         line = float(row['line'])
         edge = float(row['edge_pct'])
         notes.append(f"Model projects {proj:.1f} vs line {line:.1f} ({edge:.1f}% edge)")
-        # Pace of play (mocked, replace with real data if available)
-        pace = row.get('pace', 'Average')
+        # Pace of play (now from board data if available)
+        pace = row.get('pace', 'N/A')
         notes.append(f"Pace: {pace}")
-        # Game context (mocked, replace with real data if available)
+        # Game context (now from board data if available)
         game_type = row.get('game_type', 'Regular')
         expected_score = row.get('expected_score', 'N/A')
         winner = row.get('expected_winner', 'N/A')

@@ -3,9 +3,20 @@ name: Prop.AI Scheduled Pipeline
 on:
   schedule:
     - cron: '0 6,13,18 * * *'  # 6am, 1pm, 6pm UTC
+    - cron: '0 23 * * 0'       # 11pm UTC Sunday (Sunday night)
   workflow_dispatch:
 
 jobs:
+        - name: Send weekly accuracy report email (AOL)
+          if: github.event.schedule == '0 23 * * 0'
+          env:
+            SMTP_SERVER: smtp.aol.com
+            SMTP_PORT: 587
+            EMAIL_USER: ${{ secrets.AOL_EMAIL_USER }}
+            EMAIL_PASS: ${{ secrets.AOL_EMAIL_PASS }}
+            TO_EMAIL: ${{ secrets.AOL_TO_EMAIL }}
+          run: python send_weekly_report_email.py
+
   run-pipeline:
     runs-on: ubuntu-latest
     steps:
@@ -32,3 +43,22 @@ jobs:
           git add output/pick_log.csv output/metrics_report.csv || true
           git commit -m "Automated pick log and metrics update [skip ci]" || true
           git push || true
+
+      - name: Send daily accuracy report email (AOL)
+        env:
+          SMTP_SERVER: smtp.aol.com
+          SMTP_PORT: 587
+          EMAIL_USER: ${{ secrets.AOL_EMAIL_USER }}
+          EMAIL_PASS: ${{ secrets.AOL_EMAIL_PASS }}
+          TO_EMAIL: ${{ secrets.AOL_TO_EMAIL }}
+        run: python send_report_email.py
+
+      - name: Send weekly accuracy report email (AOL)
+        if: github.event.schedule == '0 23 * * 0'
+        env:
+          SMTP_SERVER: smtp.aol.com
+          SMTP_PORT: 587
+          EMAIL_USER: ${{ secrets.AOL_EMAIL_USER }}
+          EMAIL_PASS: ${{ secrets.AOL_EMAIL_PASS }}
+          TO_EMAIL: ${{ secrets.AOL_TO_EMAIL }}
+        run: python send_weekly_report_email.py

@@ -39,3 +39,21 @@ jobs:
           git add output/pick_log.csv output/metrics_report.csv output/top50_accuracy_report.csv || true
           git commit -m "Bi-weekly auto-tuning and metrics update [skip ci]" || true
           git push || true
+
+      - name: Send morning report email (AOL)
+        env:
+          SMTP_SERVER: smtp.aol.com
+          SMTP_PORT: 587
+          EMAIL_USER: ${{ secrets.AOL_EMAIL_USER }}
+          EMAIL_PASS: ${{ secrets.AOL_EMAIL_PASS }}
+          TO_EMAIL: ${{ secrets.AOL_TO_EMAIL }}
+        run: python send_report_email.py
+
+      - name: Send bi-weekly tuning report email (AOL)
+        env:
+          SMTP_SERVER: smtp.aol.com
+          SMTP_PORT: 587
+          EMAIL_USER: ${{ secrets.AOL_EMAIL_USER }}
+          EMAIL_PASS: ${{ secrets.AOL_EMAIL_PASS }}
+          TO_EMAIL: ${{ secrets.AOL_TO_EMAIL }}
+        run: python send_biweekly_tuning_report_email.py

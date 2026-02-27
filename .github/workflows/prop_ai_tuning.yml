@@ -1,0 +1,38 @@
+name: Prop.AI Bi-Weekly Tuning
+
+on:
+  schedule:
+    # Run at 7am UTC every other Monday (bi-weekly)
+    - cron: '0 7 * * 1'
+  workflow_dispatch:
+
+jobs:
+  biweekly-tune:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Update results for last 2 weeks
+        run: |
+          python update_results.py
+      - name: Compute metrics for last 2 weeks
+        run: |
+          python compute_metrics.py
+      - name: Run auto-tuning (bi-weekly)
+        run: |
+          python auto_tune_model.py
+      - name: Commit and push logs, metrics, and tuning suggestions
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add output/pick_log.csv output/metrics_report.csv output/top50_accuracy_report.csv || true
+          git commit -m "Bi-weekly auto-tuning and metrics update [skip ci]" || true
+          git push || true

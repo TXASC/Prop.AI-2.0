@@ -23,6 +23,9 @@ jobs:
       - name: Update results for last 2 weeks
         run: |
           python update_results.py
+      - name: Update closing line value (CLV)
+        run: |
+          python update_clv.py
       - name: Compute metrics for last 2 weeks
         run: |
           python compute_metrics.py

@@ -27,5 +27,5 @@ Write-Host "Starting FastAPI backend..."
 Start-Process -NoNewWindow -FilePath python -ArgumentList "-m uvicorn app.api.main:app --host 0.0.0.0 --port 8000"
 Start-Sleep -Seconds 5
 
-Write-Host "Launching unified dashboard script..."
-python run_dashboard.py
+Write-Host "Launching Streamlit dashboard..."
+streamlit run nba_dashboard.py

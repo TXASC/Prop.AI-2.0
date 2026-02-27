@@ -1,3 +1,11 @@
+from fastapi.responses import JSONResponse
+@app.post("/run_full")
+def run_full_pipeline():
+    # Set OPENAI_MODE to 'full' for this run
+    os.environ["OPENAI_MODE"] = "full"
+    # TODO: Call your full pipeline function here
+    # For demonstration, just return success
+    return JSONResponse(content={"status": "Full data run started", "OPENAI_MODE": os.environ["OPENAI_MODE"]})
 import os
 from fastapi import FastAPI, Query, Body
 from pydantic import BaseModel

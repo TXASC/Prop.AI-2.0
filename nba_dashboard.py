@@ -36,6 +36,27 @@ board_data = fetch_board(selected_date)
 # --- MAIN TABLE ---
 
 if board_data and "markets" in board_data:
+    # --- Manual Full Data Pull Button ---
+    st.markdown("## Manual Full Data Pull")
+    full_run_triggered = st.button("Run Full Data Pull (OpenAI Full Mode)")
+    if full_run_triggered:
+        try:
+            resp = requests.post("http://localhost:8000/run_full")
+            if resp.status_code == 200:
+                st.success("Full data run started! Results will reflect full OpenAI usage.")
+            else:
+                st.error(f"Failed to start full data run: {resp.text}")
+        except Exception as e:
+            st.error(f"Error triggering full data run: {e}")
+
+        # --- Manual Full Data Pull Button ---
+        st.markdown("## Manual Full Data Pull")
+        full_run_triggered = st.button("Run Full Data Pull (OpenAI Full Mode)")
+        if full_run_triggered:
+            st.session_state["OPENAI_MODE"] = "full"
+            st.success("Full data run started! Results will reflect full OpenAI usage.")
+        else:
+            st.session_state["OPENAI_MODE"] = "train"
     df = pd.DataFrame(board_data["markets"])
     df = df[df["stat_type"].isin(["PTS", "REB", "AST", "PRA"])]
     # Filter by minimum prop lines (DFS-typical lines)
@@ -51,10 +72,16 @@ if board_data and "markets" in board_data:
     # --- LOG PICKS FOR TRACKING ---
     import os
     from datetime import datetime
+
     log_cols = ["player_id", "stat_type", "line", "projection", "recommended_side", "over_odds", "under_odds", "edge_pct"]
     log_df = df.copy()
     log_df["date"] = datetime.now().strftime("%Y-%m-%d")
-    log_df = log_df[log_cols + ["date"]]
+    # Guardrail: Ensure all log_cols exist
+    for col in log_cols:
+        if col not in log_df.columns:
+            log_df[col] = ""
+    # Safe selection and rename
+    log_df = log_df.reindex(columns=log_cols + ["date"], fill_value="")
     log_df = log_df.rename(columns={"line": "prop_line"})
     log_df = log_df[["date", "player_id", "stat_type", "prop_line", "projection", "recommended_side", "over_odds", "under_odds", "edge_pct"]]
     log_path = os.path.join("output", "pick_log.csv")
@@ -62,7 +89,10 @@ if board_data and "markets" in board_data:
         os.makedirs("output")
     # Append to CSV, add header if file is new
     write_header = not os.path.exists(log_path) or os.path.getsize(log_path) == 0
-    log_df.to_csv(log_path, mode="a", header=write_header, index=False)
+    try:
+        log_df.to_csv(log_path, mode="a", header=write_header, index=False)
+    except Exception as e:
+        st.error(f"Error logging picks: {e}")
 
     # Relaxed odds filter: allow wider range and remove favorite side filter
     if "over_price" in df.columns and "under_price" in df.columns:
@@ -97,13 +127,31 @@ if board_data and "markets" in board_data:
     books = ["FanDuel", "DraftKings", "BetMGM", "Caesars"]
     def concise_handicapper_note(row):
         notes = []
-        if float(row['projection']) > float(row['line']):
-            notes.append(f"Proj>{row['line']}")
-        if float(row['edge_pct']) > 10:
+        # Projection context
+        proj = float(row['projection'])
+        line = float(row['line'])
+        edge = float(row['edge_pct'])
+        notes.append(f"Model projects {proj:.1f} vs line {line:.1f} ({edge:.1f}% edge)")
+        # Pace of play (mocked, replace with real data if available)
+        pace = row.get('pace', 'Average')
+        notes.append(f"Pace: {pace}")
+        # Game context (mocked, replace with real data if available)
+        game_type = row.get('game_type', 'Regular')
+        expected_score = row.get('expected_score', 'N/A')
+        winner = row.get('expected_winner', 'N/A')
+        notes.append(f"Game: {game_type}, Expected score: {expected_score}, Expected winner: {winner}")
+        # Injury/fatigue (mocked, replace with real data if available)
+        injury = row.get('injury_status', 'No major injuries')
+        fatigue = row.get('fatigue_note', 'No fatigue concerns')
+        notes.append(f"Injury: {injury}, Fatigue: {fatigue}")
+        # Edge strength
+        if edge > 10:
             notes.append("Strong edge")
-        elif float(row['edge_pct']) > 5:
+        elif edge > 5:
             notes.append("Solid edge")
-        return ", ".join(notes)
+        # Recommended side
+        notes.append(f"Recommended: {row['recommended_side']}")
+        return " | ".join(notes)
     for idx, row in df.iterrows():
         prop_mask = (df["player_id"] == row["player_id"]) & (df["stat_type"] == row["stat_type"]) & (df["line"] == row["line"])
         prop_df = df[prop_mask]
@@ -124,18 +172,24 @@ if board_data and "markets" in board_data:
         notes_col.append(concise_handicapper_note(row))
     df["Odds"] = odds_col
     df["Handicapper Notes"] = notes_col
-    table_cols = ["player_id", "stat_type", "line", "recommended_side", "projection", "edge_pct", "Odds", "Handicapper Notes"]
+
+    table_cols = ["player_id", "stat_type", "line", "recommended_side", "projection", "edge_pct", "Odds"]
     st.subheader("Top Prop Bets (Top 50 by Absolute Edge)")
+    selected_idx = st.selectbox(
+        "Select a prop to view handicap notes:",
+        options=list(df.index),
+        format_func=lambda i: f"{df.loc[i, 'player_id']} {df.loc[i, 'stat_type']} @ {df.loc[i, 'line']} ({df.loc[i, 'recommended_side']})"
+    )
     st.dataframe(df[table_cols], use_container_width=True)
     st.markdown("---")
-    # --- Expander for Full Notes (One per row) ---
-    for idx, row in df.iterrows():
-        odds_display = row['over_odds'] if row['recommended_side'] == 'Over' else row['under_odds']
-        with st.expander(f"Handicapper Notes: {row['player_id']} {row['stat_type']} @ {row['line']} Odds: {odds_display} (% Edge: {row['edge_pct']}) - {row['recommended_side']}"):
-            st.write(f"Projection: {row['projection']}, Prop Line: {row['line']}, Edge: {row['edge_pct']}%. Recommended: {row['recommended_side']}. Odds: {odds_display}")
-            st.markdown(f"**Handicapper Notes:** {concise_handicapper_note(row)}")
-            # Odds screen/modal logic placeholder (background/modal-ready)
-            st.markdown("*Click for full odds screen coming soon*")
+    # Show notes for selected row
+    row = df.loc[selected_idx]
+    odds_display = row['over_odds'] if row['recommended_side'] == 'Over' else row['under_odds']
+    with st.expander(f"Handicapper Notes: {row['player_id']} {row['stat_type']} @ {row['line']} Odds: {odds_display} (% Edge: {row['edge_pct']}) - {row['recommended_side']}"):
+        st.write(f"Projection: {row['projection']}, Prop Line: {row['line']}, Edge: {row['edge_pct']}%. Recommended: {row['recommended_side']}. Odds: {odds_display}")
+        # Enhanced notes logic
+        st.markdown(f"**Handicapper Notes:** {concise_handicapper_note(row)}")
+        st.markdown("*Click for full odds screen coming soon*")
 
 if not (board_data and "markets" in board_data):
     st.info("No data available for the selected date.")

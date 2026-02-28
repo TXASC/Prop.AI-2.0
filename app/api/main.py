@@ -48,21 +48,54 @@ def run_full():
         with open(board_path, "r") as f:
             board = json.load(f)
 
-        # Enrich each market with game context
+        # Helper: map player to team (simple lookup, can be improved)
+        # For demo, use hardcoded mapping for a few players
+        player_team_map = {
+            "Cade Cunningham": "Detroit Pistons",
+            "James Harden": "Philadelphia 76ers",
+            "Tobias Harris": "Philadelphia 76ers",
+            "Evan Mobley": "Cleveland Cavaliers",
+            "Jalen Duren": "Detroit Pistons",
+            "Jarrett Allen": "Cleveland Cavaliers",
+            "Duncan Robinson": "Miami Heat",
+            "Jaylon Tyson": "Houston Rockets",
+            "Sam Merrill": "Cleveland Cavaliers",
+            "Paul Reed Jr": "Philadelphia 76ers",
+            "Ausar Thompson": "Detroit Pistons",
+            "Ron Holland": "Houston Rockets"
+        }
+
+        # Enrich each market with game odds context
         for market in board.get("markets", []):
-            # Try to match player to game
-            # (Assume player_id contains enough info to match, or add team info to board for better matching)
-            # For demo, just attach first game
-            if game_map:
-                game = list(game_map.values())[0]
-                market["game_type"] = "Regular"
-                market["pace"] = "N/A"  # Could be calculated from bookmaker totals
-                market["expected_score"] = "N/A"
-                market["expected_winner"] = game["home_team"]
+            player = market.get("player_id")
+            team = player_team_map.get(player, None)
+            matched_game = None
+            if team:
+                for game in odds_data:
+                    if team in [game.get("home_team"), game.get("away_team")]:
+                        matched_game = game
+                        break
+            if matched_game:
+                # Moneyline odds
+                moneyline = None
+                total_points = None
+                winner = None
+                for bookmaker in matched_game.get("bookmakers", []):
+                    for market_obj in bookmaker.get("markets", []):
+                        if market_obj.get("key") == "h2h":
+                            for outcome in market_obj.get("outcomes", []):
+                                if outcome.get("name") == team:
+                                    moneyline = outcome.get("price")
+                                    winner = team if outcome.get("price") < 0 else matched_game.get("home_team")
+                        if market_obj.get("key") == "totals":
+                            for outcome in market_obj.get("outcomes", []):
+                                total_points = outcome.get("point")
+                market["team_moneyline"] = moneyline
+                market["game_total"] = total_points
+                market["expected_winner"] = winner if winner else "N/A"
             else:
-                market["game_type"] = "Regular"
-                market["pace"] = "N/A"
-                market["expected_score"] = "N/A"
+                market["team_moneyline"] = "N/A"
+                market["game_total"] = "N/A"
                 market["expected_winner"] = "N/A"
 
         # Save enriched board
